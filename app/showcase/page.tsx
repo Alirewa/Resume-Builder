@@ -169,9 +169,8 @@ export default function ShowcasePage() {
       )}
 
       <footer className={`text-center py-3 text-xs border-t ${dark ? 'border-gray-800 text-gray-500' : 'border-gray-200 text-gray-400'}`}>
-        <span className="font-semibold text-blue-500">رزومه‌ساز اختصاصی</span>
-        {' | '}ساخته شده با <span className="text-red-500">❤️</span> توسط{' '}
-        <a href="https://github.com/Alirewa" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">@Alirewa</a>
+        طراحی و توسعه با <span className="text-red-500">❤️</span> توسط{' '}
+        <a href="https://github.com/Alirewa" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline font-medium">@Alirewa</a>
       </footer>
     </div>
   )
