@@ -57,11 +57,8 @@ export default function Template1({ data, accentColor = '#1e40af' }: Props) {
     marginBottom: '8px',
     paddingBottom: '4px',
     borderBottom: `2px solid ${accentColor}`,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px',
-    flexDirection: isRTL ? 'row-reverse' : 'row',
-    justifyContent: isRTL ? 'flex-end' : 'flex-start',
+    textAlign: isRTL ? 'right' : 'left',
+    direction: isRTL ? 'rtl' : 'ltr',
   }
 
   return (

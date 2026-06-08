@@ -48,8 +48,10 @@ body {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body { margin: 0; padding: 0; background: white !important; }
   .no-print { display: none !important; }
-  /* Preview page: show only the resume template */
-  #preview-page-main { padding: 0 !important; background: white !important; }
+  /* Preview page: show only the resume template, full A4 */
+  #preview-page-main { padding: 0 !important; background: white !important; display: block !important; }
+  #preview-sizer { width: 210mm !important; max-width: none !important; margin: 0 auto; }
+  #preview-clip-div { overflow: visible !important; height: auto !important; box-shadow: none !important; border-radius: 0 !important; }
   #preview-template-wrapper {
     width: 210mm !important;
     max-width: none !important;
@@ -57,7 +59,7 @@ body {
     box-shadow: none !important;
     border-radius: 0 !important;
     overflow: visible !important;
-    margin: 0 auto;
+    margin: 0;
   }
   @page { margin: 0; size: A4 portrait; }
 }

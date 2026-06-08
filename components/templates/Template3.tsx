@@ -144,7 +144,7 @@ export default function Template3({ data, accentColor = '#7c3aed' }: Props) {
                           <div style={{ width: '1.5px', flex: 1, backgroundColor: `${accent}40`, marginTop: '3px' }} />
                         </div>
                         <div style={{ flex: 1, paddingBottom: '4px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '2px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '2px', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                             <strong style={{ fontSize: '11.5px', color: '#111' }}>{exp.company}</strong>
                             <span style={{ fontSize: '9.5px', color: '#888', background: '#f5f5f5', padding: '1px 6px', borderRadius: '4px' }}>
                               {exp.startDate} – {exp.current ? t.current : exp.endDate}
@@ -176,7 +176,7 @@ export default function Template3({ data, accentColor = '#7c3aed' }: Props) {
                           <div style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: accent, marginTop: '3px' }} />
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2px', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                             <strong style={{ fontSize: '11px', color: '#111' }}>{edu.institution}</strong>
                             <span style={{ fontSize: '9.5px', color: '#888', background: '#f5f5f5', padding: '1px 6px', borderRadius: '4px' }}>
                               {edu.startDate} – {edu.endDate}
@@ -204,7 +204,7 @@ export default function Template3({ data, accentColor = '#7c3aed' }: Props) {
                 ? <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {data.languages.map((lang) => (
                       <div key={lang.id}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                           <span style={{ fontSize: '10.5px', color: '#333', fontWeight: 600 }}>{lang.name}</span>
                           <span style={{ fontSize: '9.5px', color: '#888' }}>{lang.level}</span>
                         </div>
@@ -229,7 +229,7 @@ export default function Template3({ data, accentColor = '#7c3aed' }: Props) {
                     {data.skills.map((group) => (
                       <div key={group.id} style={{ marginBottom: '8px' }}>
                         <p style={{ fontWeight: 700, fontSize: '10.5px', color: accent, margin: '0 0 4px' }}>{group.category}</p>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: isRTL ? 'flex-end' : 'flex-start' }}>
                           {group.items.map((item, i) => (
                             <span key={i} style={{
                               fontSize: '9.5px', padding: '2px 8px', borderRadius: '99px',
@@ -270,7 +270,7 @@ export default function Template3({ data, accentColor = '#7c3aed' }: Props) {
             {/* Additional skills */}
             <Section title={t.additionalSkills} accent={accent} isRTL={isRTL}>
               {data.additionalSkills.length > 0
-                ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: isRTL ? 'flex-end' : 'flex-start' }}>
                     {data.additionalSkills.map((s, i) => (
                       <span key={i} style={{
                         fontSize: '9.5px', padding: '2px 8px', borderRadius: '99px',
@@ -285,7 +285,7 @@ export default function Template3({ data, accentColor = '#7c3aed' }: Props) {
             {/* Interests */}
             <Section title={t.interests} accent={accent} isRTL={isRTL}>
               {data.interests.length > 0
-                ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: isRTL ? 'flex-end' : 'flex-start' }}>
                     {data.interests.map((s, i) => (
                       <span key={i} style={{
                         fontSize: '9.5px', padding: '2px 8px', borderRadius: '99px',

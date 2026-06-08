@@ -30,22 +30,25 @@ export default function PreviewPage() {
   const recompute = useCallback(() => {
     if (!sizerRef.current || !wrapRef.current) return
     const avail = sizerRef.current.clientWidth
+    if (avail === 0) return
     const s = Math.min(1, avail / A4_PX)
-    const natH = wrapRef.current.offsetHeight // unaffected by CSS transform
+    const natH = wrapRef.current.scrollHeight // full height, unaffected by CSS transform
     setPreviewScale(s)
     setClipHeight(s < 1 ? Math.ceil(natH * s) : null)
   }, [])
 
-  // On window resize
+  // ResizeObserver on sizer — fires on every layout change, more reliable than window resize
   useEffect(() => {
+    if (!sizerRef.current) return
+    const ro = new ResizeObserver(recompute)
+    ro.observe(sizerRef.current)
     recompute()
-    window.addEventListener('resize', recompute)
-    return () => window.removeEventListener('resize', recompute)
+    return () => ro.disconnect()
   }, [recompute])
 
-  // Re-measure when resume content changes (template/language switch, data entry)
+  // Re-measure when resume content/template changes (content may grow taller)
   useEffect(() => {
-    const raf = requestAnimationFrame(recompute)
+    const raf = requestAnimationFrame(() => requestAnimationFrame(recompute))
     return () => cancelAnimationFrame(raf)
   }, [resume, recompute])
 
@@ -139,9 +142,9 @@ export default function PreviewPage() {
             {dark ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
           </button>
 
-          {/* Print – hidden on xs */}
+          {/* Print */}
           <button onClick={printResume}
-            className={`hidden sm:flex p-1.5 rounded-xl transition cursor-pointer flex-shrink-0 items-center justify-center ${dark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`flex p-1.5 rounded-xl transition cursor-pointer flex-shrink-0 items-center justify-center ${dark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             title="چاپ / ذخیره PDF">
             <PrinterIcon className="w-4 h-4" />
           </button>
@@ -169,12 +172,14 @@ export default function PreviewPage() {
         */}
         <div
           ref={sizerRef}
+          id="preview-sizer"
           style={{
             width: '210mm',
             maxWidth: '100%',
           }}
         >
           <div
+            id="preview-clip-div"
             style={{
               overflow: 'hidden',
               height: clipHeight != null ? `${clipHeight}px` : 'auto',
