@@ -169,9 +169,15 @@ export default function PreviewPage() {
       <main
         id="preview-page-main"
         className="flex-1 py-5 sm:py-8 overflow-x-auto"
+        style={{ direction: 'ltr' }}
         onClick={() => setShowColorPicker(false)}
       >
-        <div style={{ display: 'flex', justifyContent: 'center', minHeight: '100%' }}>
+        {/*
+          direction:ltr on main prevents RTL overflow going left (page has dir=rtl).
+          minWidth:fit-content prevents flex-center cutting off left side when content
+          is wider than viewport — makes the wrapper expand so the scrollbar covers all.
+        */}
+        <div style={{ display: 'flex', justifyContent: 'center', minHeight: '100%', minWidth: 'fit-content', padding: '0 8px' }}>
           <div
             id="preview-clip-div"
             style={{
