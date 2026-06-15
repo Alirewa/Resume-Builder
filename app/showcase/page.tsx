@@ -59,7 +59,7 @@ export default function ShowcasePage() {
         {/* 3 template grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {TEMPLATES.map((tmpl) => (
-            <div key={tmpl.id} className="flex flex-col gap-3">
+            <div key={tmpl.id} className="flex flex-col gap-3 w-full max-w-[276px] mx-auto">
               {/* Label */}
               <div className="text-center">
                 <h3 className="font-bold text-sm">{tmpl.name}</h3>

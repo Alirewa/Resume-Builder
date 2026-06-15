@@ -255,12 +255,22 @@ function SidebarBlock({ title, isRTL, children }: { title: string; isRTL: boolea
 function MainBlock({ title, accent, isRTL, children }: { title: string; accent: string; isRTL: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-        <div style={{ width: '3px', height: '13px', borderRadius: '2px', background: accent, flexShrink: 0 }} />
-        <h2 style={{ margin: 0, fontSize: '10.5px', fontWeight: 700, color: '#0f0f1a', textTransform: isRTL ? 'none' : 'uppercase', letterSpacing: isRTL ? '0' : '0.07em' }}>
-          {title}
-        </h2>
-      </div>
+      <h2 style={{
+        margin: '0 0 8px',
+        fontSize: '10.5px',
+        fontWeight: 700,
+        color: '#0f0f1a',
+        textTransform: isRTL ? 'none' : 'uppercase',
+        letterSpacing: isRTL ? '0' : '0.07em',
+        borderRight: isRTL ? `3px solid ${accent}` : 'none',
+        borderLeft: isRTL ? 'none' : `3px solid ${accent}`,
+        paddingRight: isRTL ? '7px' : '0',
+        paddingLeft: isRTL ? '0' : '7px',
+        textAlign: isRTL ? 'right' : 'left',
+        direction: isRTL ? 'rtl' : 'ltr',
+      }}>
+        {title}
+      </h2>
       {children}
     </div>
   )

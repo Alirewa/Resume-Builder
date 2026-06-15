@@ -123,7 +123,7 @@ export default function Template3({ data, accentColor = '#7c3aed' }: Props) {
         <div style={{ display: 'flex', gap: '18px', flex: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
 
           {/* LEFT COLUMN (wider) */}
-          <div style={{ flex: '0 0 62%', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ flex: '0 0 62%', display: 'flex', flexDirection: 'column', gap: '14px', textAlign: isRTL ? 'right' : 'left' }}>
 
             {/* Profile */}
             <Section title={t.profile} accent={accent} isRTL={isRTL}>
@@ -196,7 +196,7 @@ export default function Template3({ data, accentColor = '#7c3aed' }: Props) {
           </div>
 
           {/* RIGHT COLUMN (narrower) */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '14px', textAlign: isRTL ? 'right' : 'left' }}>
 
             {/* Languages */}
             <Section title={t.languages} accent={accent} isRTL={isRTL}>
@@ -327,10 +327,21 @@ function EmptySection({ text, isRTL }: { text: string; isRTL: boolean }) {
 function Section({ title, accent, isRTL, children }: { title: string; accent: string; isRTL: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-        <div style={{ width: '3px', height: '14px', borderRadius: '2px', background: accent, flexShrink: 0 }} />
-        <h2 style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: '#111', letterSpacing: isRTL ? '0' : '0.02em' }}>{title}</h2>
-      </div>
+      <h2 style={{
+        margin: '0 0 8px',
+        fontSize: '12px',
+        fontWeight: 700,
+        color: '#111',
+        letterSpacing: isRTL ? '0' : '0.02em',
+        borderRight: isRTL ? `3px solid ${accent}` : 'none',
+        borderLeft: isRTL ? 'none' : `3px solid ${accent}`,
+        paddingRight: isRTL ? '7px' : '0',
+        paddingLeft: isRTL ? '0' : '7px',
+        textAlign: isRTL ? 'right' : 'left',
+        direction: isRTL ? 'rtl' : 'ltr',
+      }}>
+        {title}
+      </h2>
       {children}
     </div>
   )
