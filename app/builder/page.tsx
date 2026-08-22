@@ -1,332 +1,327 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import Link from 'next/link'
-import { useResumeStore, ACCENT_COLORS } from '@/lib/store'
+import {
+  AcademicCapIcon,
+  ArrowDownTrayIcon,
+  ArrowLongLeftIcon,
+  ArrowLongRightIcon,
+  ArrowUpTrayIcon,
+  BriefcaseIcon,
+  CodeBracketIcon,
+  EyeIcon,
+  LanguageIcon,
+  SparklesIcon,
+  TrashIcon,
+  UserIcon,
+  WrenchScrewdriverIcon,
+} from '@heroicons/react/24/outline'
+import { useResumeStore } from '@/lib/store'
+import { completeness, exportBaseName } from '@/lib/resume'
+import { parseResumeJson } from '@/lib/schema'
+import { readTextFile } from '@/lib/image'
 import PersonalInfoStep from '@/components/builder/PersonalInfoStep'
 import ExperienceStep from '@/components/builder/ExperienceStep'
 import EducationStep from '@/components/builder/EducationStep'
 import SkillsStep from '@/components/builder/SkillsStep'
 import LanguagesStep from '@/components/builder/LanguagesStep'
+import { Button } from '@/components/ui/FormField'
+import Modal from '@/components/ui/Modal'
 import {
-  UserIcon, BriefcaseIcon, AcademicCapIcon,
-  WrenchScrewdriverIcon, LanguageIcon,
-  DocumentTextIcon, ArrowRightIcon, ArrowLeftIcon,
-  EyeIcon, ArrowDownTrayIcon, TrashIcon,
-  SunIcon, MoonIcon, SwatchIcon,
-  ArrowUpTrayIcon, CodeBracketIcon,
-} from '@heroicons/react/24/outline'
+  AccentPicker,
+  AppLanguageMenu,
+  SiteFooter,
+  SiteHeader,
+  ThemeToggle,
+  Wordmark,
+} from '@/components/ui/Controls'
+import { useToast } from '@/components/ui/Toast'
+import { useUi } from '@/components/ui/useUi'
+import { useHydrated } from '@/components/ui/useHydrated'
 
-const steps = [
-  { id: 0, labelFa: 'اطلاعات شخصی', icon: UserIcon, component: PersonalInfoStep },
-  { id: 1, labelFa: 'سابقه کاری', icon: BriefcaseIcon, component: ExperienceStep },
-  { id: 2, labelFa: 'تحصیلات', icon: AcademicCapIcon, component: EducationStep },
-  { id: 3, labelFa: 'مهارت‌ها', icon: WrenchScrewdriverIcon, component: SkillsStep },
-  { id: 4, labelFa: 'زبان‌ها و گواهینامه‌ها', icon: LanguageIcon, component: LanguagesStep },
-]
+const STEPS = [
+  { icon: UserIcon, Component: PersonalInfoStep },
+  { icon: BriefcaseIcon, Component: ExperienceStep },
+  { icon: AcademicCapIcon, Component: EducationStep },
+  { icon: WrenchScrewdriverIcon, Component: SkillsStep },
+  { icon: LanguageIcon, Component: LanguagesStep },
+] as const
+
+type Confirmation = 'reset' | 'sample' | null
 
 export default function BuilderPage() {
+  const ui = useUi()
+  const toast = useToast()
+  const hydrated = useHydrated()
+
   const [currentStep, setCurrentStep] = useState(0)
-  const [showColorPicker, setShowColorPicker] = useState(false)
-  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [confirming, setConfirming] = useState<Confirmation>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
-  const { resume, resetResume, importResume, settings, toggleDarkMode, setAccentColor } = useResumeStore()
-  const dark = settings.darkMode
-  const CurrentComponent = steps[currentStep].component
+
+  const resume = useResumeStore((s) => s.resume)
+  const resetResume = useResumeStore((s) => s.resetResume)
+  const importResume = useResumeStore((s) => s.importResume)
+  const loadSample = useResumeStore((s) => s.loadSample)
+  const undo = useResumeStore((s) => s.undo)
+
+  const CurrentStep = STEPS[currentStep].Component
+  const score = completeness(resume)
+  const PrevIcon = ui.dir === 'rtl' ? ArrowLongRightIcon : ArrowLongLeftIcon
+  const NextIcon = ui.dir === 'rtl' ? ArrowLongLeftIcon : ArrowLongRightIcon
+
+  /** Every destructive action offers a single-step undo from the toast. */
+  const undoAction = { label: ui.toast.undo, onClick: () => {
+    undo()
+    toast.success(ui.toast.undone)
+  } }
 
   const handleReset = () => {
     resetResume()
     setCurrentStep(0)
-    setShowResetConfirm(false)
+    setConfirming(null)
+    toast.success(ui.toast.cleared, undoAction)
+  }
+
+  const handleLoadSample = () => {
+    loadSample()
+    setCurrentStep(0)
+    setConfirming(null)
+    toast.success(ui.toast.sampleLoaded, undoAction)
   }
 
   const handleExportJson = () => {
-    const name = [resume.personal.firstName, resume.personal.lastName].filter(Boolean).join('_')
-    const filename = `${name || 'resume'}_${new Date().toISOString().slice(0, 10)}.json`
+    const filename = `${exportBaseName(resume)}_${new Date().toISOString().slice(0, 10)}.json`
     const blob = new Blob([JSON.stringify(resume, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = filename
     a.click()
-    URL.revokeObjectURL(url)
+    // Revoking synchronously can cancel the download in some browsers.
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    toast.success(ui.toast.exportOk)
   }
 
-  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportJson = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result as string)
-        if (!data || typeof data !== 'object' || !data.personal || !data.template || !data.language) {
-          alert('فایل JSON معتبر نیست — ساختار رزومه یافت نشد')
-          return
-        }
-        importResume(data)
-        setCurrentStep(0)
-      } catch {
-        alert('خطا در خواندن فایل — مطمئن شوید فایل JSON سالم است')
-      }
-    }
-    reader.readAsText(file)
     e.target.value = ''
+    if (!file) return
+
+    let text: string
+    try {
+      text = await readTextFile(file)
+    } catch {
+      toast.error(ui.toast.importBadJson)
+      return
+    }
+
+    const result = parseResumeJson(text)
+    if (!result.ok) {
+      toast.error(result.reason === 'not-json' ? ui.toast.importBadJson : ui.toast.importNotResume)
+      return
+    }
+
+    importResume(result.data)
+    setCurrentStep(0)
+    toast.success(ui.toast.importOk, undoAction)
   }
+
+  const sidebarActions = (
+    <>
+      <Link
+        href="/preview"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-2.5 text-sm font-semibold text-white transition hover:brightness-110"
+      >
+        <ArrowDownTrayIcon className="h-4 w-4" />
+        {ui.builder.getPdf}
+      </Link>
+      <Button variant="secondary" fullWidth onClick={() => setConfirming('sample')}>
+        <SparklesIcon className="h-4 w-4" />
+        {ui.builder.loadSample}
+      </Button>
+      <Button variant="danger" fullWidth onClick={() => setConfirming('reset')}>
+        <TrashIcon className="h-4 w-4" />
+        {ui.builder.clearForm}
+      </Button>
+
+      <div className="space-y-2 border-t border-gray-200 pt-2 dark:border-gray-700">
+        <p className="px-1 text-xs font-semibold text-gray-400 dark:text-gray-500">
+          {ui.builder.jsonSection}
+        </p>
+        <Button variant="secondary" fullWidth onClick={handleExportJson}>
+          <CodeBracketIcon className="h-4 w-4" />
+          {ui.builder.exportJson}
+        </Button>
+        <Button variant="secondary" fullWidth onClick={() => importInputRef.current?.click()}>
+          <ArrowUpTrayIcon className="h-4 w-4" />
+          {ui.builder.importJson}
+        </Button>
+      </div>
+    </>
+  )
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${dark ? 'bg-gray-950' : 'bg-gray-50'}`}>
-
-      {/* ── Navbar ── */}
-      <header className={`border-b sticky top-0 z-10 ${dark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} shadow-sm`}>
-        <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
-          <Link href="/" className={`flex items-center gap-1.5 text-sm flex-shrink-0 transition ${dark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-800'}`}>
-            <ArrowRightIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">بازگشت</span>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <DocumentTextIcon className="w-5 h-5 text-blue-500" />
-            <span className={`font-bold text-sm sm:text-base ${dark ? 'text-gray-100' : 'text-gray-800'}`}>
-              رزومه‌ساز <span className="text-blue-500">اختصاصی</span>
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader
+        start={
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 text-sm text-gray-500 transition hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <PrevIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">{ui.nav.back}</span>
+            </Link>
+            <span className="hidden md:block">
+              <Wordmark />
             </span>
           </div>
-
+        }
+        end={
           <div className="flex items-center gap-1.5">
-            {/* Color picker toggle */}
-            <div className="relative">
-              <button
-                onClick={() => { setShowColorPicker((v) => !v); setShowResetConfirm(false) }}
-                className={`p-2 rounded-xl transition cursor-pointer ${dark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}
-                title="رنگ قالب"
-              >
-                <SwatchIcon className="w-4 h-4 text-blue-500" />
-              </button>
-
-              {showColorPicker && (
-                <div className={`absolute top-10 left-0 z-50 rounded-2xl shadow-2xl border p-3 w-48 ${dark ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
-                  <p className={`text-xs font-semibold mb-2 ${dark ? 'text-gray-300' : 'text-gray-600'}`}>رنگ قالب</p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {ACCENT_COLORS.map((c) => (
-                      <button
-                        key={c.value}
-                        onClick={() => { setAccentColor(c.value); setShowColorPicker(false) }}
-                        className="w-8 h-8 rounded-full border-2 cursor-pointer transition hover:scale-110"
-                        style={{
-                          backgroundColor: c.value,
-                          borderColor: settings.accentColor === c.value ? '#fff' : 'transparent',
-                          boxShadow: settings.accentColor === c.value ? `0 0 0 2px ${c.value}` : 'none',
-                        }}
-                        title={c.name}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Dark mode */}
-            <button
-              onClick={toggleDarkMode}
-              className={`p-2 rounded-xl transition cursor-pointer ${dark ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-            >
-              {dark ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
-            </button>
-
-            {/* Preview */}
+            <AppLanguageMenu />
+            <AccentPicker />
+            <ThemeToggle />
             <Link
               href="/preview"
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-xl transition flex items-center gap-1.5 flex-shrink-0"
+              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-medium text-white transition hover:brightness-110 sm:text-sm"
             >
-              <EyeIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">پیش‌نمایش</span>
+              <EyeIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">{ui.nav.preview}</span>
             </Link>
           </div>
-        </div>
-      </header>
+        }
+      />
 
-      <div className="flex-1 max-w-5xl mx-auto w-full px-4 py-6 sm:py-8 flex flex-col lg:flex-row gap-6 lg:gap-8"
-        onClick={() => { setShowColorPicker(false) }}>
-
-        {/* ── Sidebar ── */}
-        <aside className="lg:w-56 flex-shrink-0">
-          {/* Mobile tabs */}
-          <div className="lg:hidden flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {steps.map((step) => {
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:py-8 lg:flex-row lg:gap-8">
+        {/* ── Step navigation ── */}
+        <aside className="shrink-0 lg:w-56">
+          {/* Mobile: horizontal tab strip */}
+          <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-1 lg:hidden">
+            {STEPS.map((step, i) => {
               const Icon = step.icon
               return (
-                <button key={step.id} onClick={() => setCurrentStep(step.id)}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer whitespace-nowrap ${
-                    currentStep === step.id
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : dark ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-white text-gray-600 border border-gray-200'
-                  }`}>
-                  <Icon className="w-3.5 h-3.5" />
-                  {step.labelFa}
+                <button
+                  key={i}
+                  onClick={() => setCurrentStep(i)}
+                  aria-current={currentStep === i ? 'step' : undefined}
+                  className={`flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition ${
+                    currentStep === i
+                      ? 'bg-[var(--accent)] text-white shadow-sm'
+                      : 'border border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {ui.builder.steps[i]}
                 </button>
               )
             })}
           </div>
 
-          {/* Desktop sidebar */}
-          <div className={`hidden lg:flex flex-col gap-3`}>
-            <div className={`rounded-2xl shadow-sm border p-3 sticky top-20 ${dark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
-              <p className={`text-xs font-semibold px-2 mb-2 uppercase tracking-wider ${dark ? 'text-gray-400' : 'text-gray-400'}`}>مراحل</p>
-              <nav className="space-y-1">
-                {steps.map((step) => {
+          {/* Desktop: sticky sidebar */}
+          <div className="hidden lg:block">
+            <div className="sticky top-20 space-y-4 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <nav aria-label={ui.nav.build} className="space-y-1">
+                {STEPS.map((step, i) => {
                   const Icon = step.icon
                   return (
-                    <button key={step.id} onClick={() => setCurrentStep(step.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer ${
-                        currentStep === step.id
-                          ? 'bg-blue-600 text-white'
-                          : dark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'
-                      }`}>
-                      <Icon className="w-4 h-4 flex-shrink-0" />
-                      <span>{step.labelFa}</span>
+                    <button
+                      key={i}
+                      onClick={() => setCurrentStep(i)}
+                      aria-current={currentStep === i ? 'step' : undefined}
+                      className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                        currentStep === i
+                          ? 'bg-[var(--accent)] text-white'
+                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="text-start">{ui.builder.steps[i]}</span>
                     </button>
                   )
                 })}
               </nav>
 
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                <Link href="/preview"
-                  className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold py-2.5 rounded-xl transition">
-                  <ArrowDownTrayIcon className="w-4 h-4" />
-                  دریافت PDF
-                </Link>
-                <button
-                  onClick={() => setShowResetConfirm(true)}
-                  className={`w-full flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-xl transition cursor-pointer border ${
-                    dark ? 'border-red-700 text-red-400 hover:bg-red-900/30' : 'border-red-200 text-red-500 hover:bg-red-50'
-                  }`}>
-                  <TrashIcon className="w-4 h-4" />
-                  پاک کردن فرم
-                </button>
+              <CompletenessMeter label={ui.builder.completeness} score={hydrated ? score : 0} />
 
-                {/* JSON export / import */}
-                <div className={`pt-2 border-t ${dark ? 'border-gray-700' : 'border-gray-200'} space-y-2`}>
-                  <p className={`text-xs font-semibold px-1 ${dark ? 'text-gray-500' : 'text-gray-400'}`}>فایل JSON</p>
-                  <button
-                    onClick={handleExportJson}
-                    className={`w-full flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-xl transition cursor-pointer border ${
-                      dark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                    }`}>
-                    <CodeBracketIcon className="w-4 h-4" />
-                    برون‌ریزی JSON
-                  </button>
-                  <button
-                    onClick={() => importInputRef.current?.click()}
-                    className={`w-full flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-xl transition cursor-pointer border ${
-                      dark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                    }`}>
-                    <ArrowUpTrayIcon className="w-4 h-4" />
-                    درون‌ریزی JSON
-                  </button>
-                </div>
+              <div className="space-y-2 border-t border-gray-200 pt-4 dark:border-gray-700">
+                {sidebarActions}
               </div>
             </div>
           </div>
         </aside>
 
-        {/* ── Main ── */}
-        <main className="flex-1 min-w-0">
-          {/* Progress */}
+        {/* ── Current step ── */}
+        <main className="min-w-0 flex-1">
           <div className="mb-5">
-            <div className="flex items-center gap-2 mb-2">
-              {React.createElement(steps[currentStep].icon, {
-                className: `w-5 h-5 flex-shrink-0 ${dark ? 'text-blue-400' : 'text-blue-600'}`
+            <div className="mb-2 flex items-center gap-2">
+              {React.createElement(STEPS[currentStep].icon, {
+                className: 'h-5 w-5 shrink-0 text-[var(--accent)]',
               })}
-              <h2 className={`text-lg sm:text-xl font-bold ${dark ? 'text-gray-100' : 'text-gray-900'}`}>
-                {steps[currentStep].labelFa}
-              </h2>
+              <h1 className="text-lg font-bold sm:text-xl">{ui.builder.steps[currentStep]}</h1>
             </div>
-            <div className="flex items-center gap-1.5">
-              {steps.map((s) => (
-                <div key={s.id}
-                  className={`h-1.5 flex-1 rounded-full transition-all cursor-pointer`}
-                  style={{ backgroundColor: s.id <= currentStep ? '#2563eb' : dark ? '#374151' : '#e5e7eb' }}
-                  onClick={() => setCurrentStep(s.id)}
-                />
+            <ol className="flex items-center gap-1.5">
+              {STEPS.map((_, i) => (
+                <li key={i} className="flex-1">
+                  <button
+                    onClick={() => setCurrentStep(i)}
+                    aria-label={ui.builder.steps[i]}
+                    className="h-1.5 w-full cursor-pointer rounded-full transition-all"
+                    style={{
+                      backgroundColor:
+                        i <= currentStep ? 'var(--accent)' : 'rgb(156 163 175 / 0.35)',
+                    }}
+                  />
+                </li>
               ))}
-            </div>
-            <p className={`text-xs mt-1 ${dark ? 'text-gray-500' : 'text-gray-400'}`}>
-              مرحله {currentStep + 1} از {steps.length}
+            </ol>
+            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+              {ui.builder.stepOf(currentStep + 1, STEPS.length)}
             </p>
           </div>
 
-          {/* Form card */}
-          <div className={`rounded-2xl shadow-sm border p-4 sm:p-6 ${dark ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-100'}`}>
-            <CurrentComponent />
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 dark:border-gray-700 dark:bg-gray-800">
+            {/* The form reads persisted data, so it waits one render for hydration. */}
+            {hydrated ? <CurrentStep /> : <StepSkeleton />}
           </div>
 
-          {/* Mobile reset/PDF row */}
-          <div className="lg:hidden flex gap-2 mt-4">
-            <Link href="/preview"
-              className="flex-1 flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold py-2.5 rounded-xl transition">
-              <ArrowDownTrayIcon className="w-4 h-4" />
-              PDF
-            </Link>
-            <button onClick={() => setShowResetConfirm(true)}
-              className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-medium py-2.5 rounded-xl border transition cursor-pointer ${
-                dark ? 'border-red-700 text-red-400' : 'border-red-200 text-red-500'
-              }`}>
-              <TrashIcon className="w-4 h-4" />
-              پاک کردن
-            </button>
-          </div>
-          {/* Mobile JSON row */}
-          <div className="lg:hidden flex gap-2 mt-2">
-            <button
-              onClick={handleExportJson}
-              className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-medium py-2.5 rounded-xl border transition cursor-pointer ${
-                dark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}>
-              <CodeBracketIcon className="w-4 h-4" />
-              برون‌ریزی
-            </button>
-            <button
-              onClick={() => importInputRef.current?.click()}
-              className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-medium py-2.5 rounded-xl border transition cursor-pointer ${
-                dark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}>
-              <ArrowUpTrayIcon className="w-4 h-4" />
-              درون‌ریزی
-            </button>
+          {/* Mobile action rows */}
+          <div className="mt-4 space-y-2 lg:hidden">
+            <CompletenessMeter label={ui.builder.completeness} score={hydrated ? score : 0} />
+            <div className="space-y-2 rounded-2xl border border-gray-100 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+              {sidebarActions}
+            </div>
           </div>
 
-          {/* Nav buttons */}
-          <div className="flex justify-between mt-4 sm:mt-5 gap-3">
-            <button
+          <div className="mt-4 flex justify-between gap-3 sm:mt-5">
+            <Button
+              variant="secondary"
               onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
               disabled={currentStep === 0}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl border text-sm font-medium transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                dark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-100'
-              }`}>
-              <ArrowRightIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">مرحله قبل</span>
-              <span className="sm:hidden">قبل</span>
-            </button>
+            >
+              <PrevIcon className="h-4 w-4" />
+              {ui.builder.prev}
+            </Button>
 
-            {currentStep < steps.length - 1 ? (
-              <button
-                onClick={() => setCurrentStep((s) => s + 1)}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition cursor-pointer">
-                <span className="hidden sm:inline">مرحله بعد</span>
-                <span className="sm:hidden">بعد</span>
-                <ArrowLeftIcon className="w-4 h-4" />
-              </button>
+            {currentStep < STEPS.length - 1 ? (
+              <Button onClick={() => setCurrentStep((s) => s + 1)}>
+                {ui.builder.next}
+                <NextIcon className="h-4 w-4" />
+              </Button>
             ) : (
-              <Link href="/preview"
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition">
-                <span>مشاهده رزومه</span>
-                <EyeIcon className="w-4 h-4" />
+              <Link
+                href="/preview"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:brightness-110"
+              >
+                {ui.builder.viewResume}
+                <EyeIcon className="h-4 w-4" />
               </Link>
             )}
           </div>
         </main>
       </div>
 
-      {/* Hidden JSON import input */}
       <input
         ref={importInputRef}
         type="file"
@@ -335,45 +330,70 @@ export default function BuilderPage() {
         onChange={handleImportJson}
       />
 
-      {/* ── Reset confirm modal ── */}
-      {showResetConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className={`rounded-2xl shadow-2xl p-6 max-w-sm w-full border ${dark ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
-            <div className="flex justify-center mb-4">
-              <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                <TrashIcon className="w-7 h-7 text-red-500" />
-              </div>
-            </div>
-            <h3 className={`text-center font-bold text-lg mb-2 ${dark ? 'text-gray-100' : 'text-gray-800'}`}>
-              پاک کردن فرم
-            </h3>
-            <p className={`text-center text-sm mb-6 ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
-              تمام اطلاعات وارد شده پاک می‌شود. آیا مطمئن هستید؟
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowResetConfirm(false)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition cursor-pointer ${
-                  dark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-100'
-                }`}>
-                انصراف
-              </button>
-              <button
-                onClick={handleReset}
-                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition cursor-pointer">
-                بله، پاک کن
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={confirming !== null}
+        onClose={() => setConfirming(null)}
+        title={confirming === 'sample' ? ui.builder.loadSampleTitle : ui.builder.clearTitle}
+      >
+        <p className="mb-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          {confirming === 'sample' ? ui.builder.loadSampleBody : ui.builder.clearBody}
+        </p>
+        <div className="flex gap-3">
+          <Button variant="secondary" fullWidth onClick={() => setConfirming(null)}>
+            {ui.builder.cancel}
+          </Button>
+          <button
+            onClick={confirming === 'sample' ? handleLoadSample : handleReset}
+            className={`w-full cursor-pointer rounded-xl py-2.5 text-sm font-medium text-white transition ${
+              confirming === 'sample'
+                ? 'bg-[var(--accent)] hover:brightness-110'
+                : 'bg-red-500 hover:bg-red-600'
+            }`}
+          >
+            {confirming === 'sample' ? ui.builder.confirmLoadSample : ui.builder.confirmClear}
+          </button>
         </div>
-      )}
+      </Modal>
 
-      {/* Footer */}
-      <footer className={`text-center py-3 text-xs border-t ${dark ? 'border-gray-800 text-gray-500' : 'border-gray-200 text-gray-400'}`}>
-        طراحی و توسعه با <span className="text-red-500">❤️</span> توسط{' '}
-        <a href="https://github.com/Alirewa" target="_blank" rel="noopener noreferrer"
-          className="font-medium hover:underline text-blue-500">@Alirewa</a>
-      </footer>
+      <SiteFooter />
+    </div>
+  )
+}
+
+function CompletenessMeter({ label, score }: { label: string; score: number }) {
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-1.5 flex items-center justify-between text-xs">
+        <span className="font-semibold text-gray-600 dark:text-gray-300">{label}</span>
+        <span className="font-bold text-[var(--accent)]">{score}%</span>
+      </div>
+      <div
+        className="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+        role="progressbar"
+        aria-valuenow={score}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={label}
+      >
+        <div
+          className="h-full rounded-full bg-[var(--accent)] transition-all duration-300"
+          style={{ width: `${score}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function StepSkeleton() {
+  return (
+    <div className="animate-pulse space-y-4" aria-hidden>
+      <div className="h-24 rounded-xl bg-gray-100 dark:bg-gray-700" />
+      <div className="h-10 rounded-lg bg-gray-100 dark:bg-gray-700" />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="h-10 rounded-lg bg-gray-100 dark:bg-gray-700" />
+        <div className="h-10 rounded-lg bg-gray-100 dark:bg-gray-700" />
+      </div>
+      <div className="h-24 rounded-lg bg-gray-100 dark:bg-gray-700" />
     </div>
   )
 }

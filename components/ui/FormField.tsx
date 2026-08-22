@@ -1,41 +1,88 @@
 'use client'
 
-import React from 'react'
+import React, { useId } from 'react'
+
+/* One shared field skin. Every input in the app goes through here so focus
+   rings, dark mode and spacing cannot drift between the five form steps. */
+const fieldClass =
+  'w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 ' +
+  'placeholder-gray-400 transition focus:border-transparent focus:outline-none ' +
+  'focus:ring-2 focus:ring-[var(--accent-ring)] ' +
+  'dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500'
+
+const labelClass = 'text-sm font-medium text-gray-700 dark:text-gray-300'
+
+function errorClass(error?: string) {
+  return error ? ' border-red-400 dark:border-red-500' : ''
+}
+
+interface FieldWrapperProps {
+  id: string
+  label: string
+  error?: string
+  hint?: string
+  children: React.ReactNode
+}
+
+function FieldWrapper({ id, label, error, hint, children }: FieldWrapperProps) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className={labelClass}>
+        {label}
+      </label>
+      {children}
+      {hint && !error && <p className="text-xs text-gray-400 dark:text-gray-500">{hint}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-xs text-red-500">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string
   error?: string
+  hint?: string
 }
 
-export function Input({ label, error, className = '', ...props }: InputProps) {
+export function Input({ label, error, hint, className = '', id, ...props }: InputProps) {
+  const generated = useId()
+  const inputId = id ?? generated
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+    <FieldWrapper id={inputId} label={label} error={error} hint={hint}>
       <input
-        className={`w-full min-w-0 border border-gray-300 bg-white text-gray-900 placeholder-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${error ? 'border-red-400' : ''} ${className}`}
+        id={inputId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${inputId}-error` : undefined}
+        className={`${fieldClass}${errorClass(error)} ${className}`}
         {...props}
       />
-      {error && <p className="text-xs text-red-500">{error}</p>}
-    </div>
+    </FieldWrapper>
   )
 }
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string
   error?: string
+  hint?: string
 }
 
-export function Textarea({ label, error, className = '', ...props }: TextareaProps) {
+export function Textarea({ label, error, hint, className = '', id, rows = 3, ...props }: TextareaProps) {
+  const generated = useId()
+  const inputId = id ?? generated
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+    <FieldWrapper id={inputId} label={label} error={error} hint={hint}>
       <textarea
-        className={`w-full min-w-0 border border-gray-300 bg-white text-gray-900 placeholder-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none ${error ? 'border-red-400' : ''} ${className}`}
-        rows={3}
+        id={inputId}
+        rows={rows}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${inputId}-error` : undefined}
+        className={`${fieldClass} resize-y${errorClass(error)} ${className}`}
         {...props}
       />
-      {error && <p className="text-xs text-red-500">{error}</p>}
-    </div>
+    </FieldWrapper>
   )
 }
 
@@ -45,45 +92,90 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: string
 }
 
-export function Select({ label, options, error, className = '', ...props }: SelectProps) {
+export function Select({ label, options, error, className = '', id, ...props }: SelectProps) {
+  const generated = useId()
+  const inputId = id ?? generated
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-      <select
-        className={`w-full min-w-0 border border-gray-300 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${error ? 'border-red-400' : ''} ${className}`}
-        {...props}
-      >
+    <FieldWrapper id={inputId} label={label} error={error}>
+      <select id={inputId} className={`${fieldClass}${errorClass(error)} ${className}`} {...props}>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>
         ))}
       </select>
-      {error && <p className="text-xs text-red-500">{error}</p>}
-    </div>
+    </FieldWrapper>
   )
 }
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
-  size?: 'sm' | 'md' | 'lg'
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+type ButtonVariant = 'accent' | 'primary' | 'secondary' | 'danger' | 'ghost'
+type ButtonSize = 'sm' | 'md' | 'lg'
+
+const variantClass: Record<ButtonVariant, string> = {
+  // Follows the user's chosen accent colour.
+  accent: 'bg-[var(--accent)] text-white hover:brightness-110',
+  primary: 'bg-blue-600 text-white hover:bg-blue-700',
+  secondary:
+    'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 ' +
+    'dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700',
+  danger:
+    'border border-red-200 text-red-600 hover:bg-red-50 ' +
+    'dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40',
+  ghost: 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700',
 }
 
-export function Button({ variant = 'primary', size = 'md', className = '', children, ...props }: ButtonProps) {
-  const variants = {
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white',
-    secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 dark:border-gray-600',
-    danger: 'bg-red-500 hover:bg-red-600 text-white',
-    ghost: 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300',
-  }
-  const sizes = {
-    sm: 'px-3 py-1.5 text-xs',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
-  }
+const sizeClass: Record<ButtonSize, string> = {
+  sm: 'px-3 py-1.5 text-xs',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-6 py-3 text-base',
+}
+
+const buttonBase =
+  'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl font-medium ' +
+  'transition disabled:cursor-not-allowed disabled:opacity-50'
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  fullWidth?: boolean
+}
+
+export function Button({
+  variant = 'accent',
+  size = 'md',
+  fullWidth,
+  className = '',
+  children,
+  type = 'button',
+  ...props
+}: ButtonProps) {
   return (
     <button
-      className={`rounded-lg font-medium transition inline-flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
+      type={type}
+      className={`${buttonBase} ${variantClass[variant]} ${sizeClass[size]} ${
+        fullWidth ? 'w-full' : ''
+      } ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
+interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Required: these buttons have no visible text. */
+  label: string
+}
+
+export function IconButton({ label, className = '', children, type = 'button', ...props }: IconButtonProps) {
+  return (
+    <button
+      type={type}
+      aria-label={label}
+      title={label}
+      className={`inline-flex cursor-pointer items-center justify-center rounded-xl p-2 text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 ${className}`}
       {...props}
     >
       {children}

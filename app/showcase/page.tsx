@@ -1,177 +1,216 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import Template1 from '@/components/templates/Template1'
-import Template2 from '@/components/templates/Template2'
-import Template3 from '@/components/templates/Template3'
+import {
+  ArrowLongLeftIcon,
+  ArrowLongRightIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
 import { useResumeStore } from '@/lib/store'
-import { sampleDataDe } from '@/lib/sampleData'
-import type { ResumeData, TemplateId } from '@/lib/types'
-import { ArrowRightIcon, ArrowLeftIcon, DocumentTextIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { sampleResume } from '@/lib/sampleData'
+import { TEMPLATE_IDS, type TemplateId } from '@/lib/types'
+import ResumeDocument from '@/components/templates/ResumeDocument'
+import Modal from '@/components/ui/Modal'
+import {
+  AccentPicker,
+  AppLanguageMenu,
+  SiteFooter,
+  SiteHeader,
+  ThemeToggle,
+  Wordmark,
+} from '@/components/ui/Controls'
+import { useUi } from '@/components/ui/useUi'
+import { useHydrated } from '@/components/ui/useHydrated'
 
-const ACCENT = '#2563eb'
-
-const TEMPLATES = [
-  { id: 1 as TemplateId, name: 'قالب کلاسیک', nameEn: 'Classic', desc: 'ساختار ساده و تمیز، مناسب برای خوانایی ATS' },
-  { id: 2 as TemplateId, name: 'قالب مدرن', nameEn: 'Modern', desc: 'دو ستونه با سایدبار — ظاهر حرفه‌ای' },
-  { id: 3 as TemplateId, name: 'قالب خلاقانه', nameEn: 'Creative', desc: 'تایم‌لاین + تگ‌های رنگی — مدرن و متفاوت' },
-]
+/** A4 (794 px) scaled into a 276 px card. */
+const CARD_SCALE = 0.348
 
 export default function ShowcasePage() {
-  const { settings } = useResumeStore()
-  const dark = settings.darkMode
-  const accent = settings.accentColor || ACCENT
+  const ui = useUi()
+  const hydrated = useHydrated()
+  const appLanguage = useResumeStore((s) => s.settings.appLanguage)
+  const accent = useResumeStore((s) => s.settings.accentColor)
+  const setTemplate = useResumeStore((s) => s.setTemplate)
+
   const [active, setActive] = useState<TemplateId | null>(null)
 
-  const mockData: ResumeData = { ...sampleDataDe, template: active ?? 1 }
+  // The gallery previews the sample in whichever language the user reads.
+  const demo = sampleResume(hydrated ? appLanguage : 'fa')
+
+  const step = useCallback((delta: number) => {
+    setActive((current) => {
+      const index = (current ?? 1) - 1
+      return (((index + delta + TEMPLATE_IDS.length) % TEMPLATE_IDS.length) + 1) as TemplateId
+    })
+  }, [])
+
+  // Arrow keys walk the gallery while the lightbox is open.
+  useEffect(() => {
+    if (active === null) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') step(1)
+      if (e.key === 'ArrowLeft') step(-1)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [active, step])
+
+  const NextIcon = ui.dir === 'rtl' ? ArrowLongLeftIcon : ArrowLongRightIcon
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors ${dark ? 'bg-gray-950 text-gray-100' : 'bg-gray-100 text-gray-900'}`}>
-
-      {/* Header */}
-      <header className={`border-b sticky top-0 z-10 ${dark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} shadow-sm`}>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <Link href="/" className={`flex items-center gap-1.5 text-sm transition ${dark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-800'}`}>
-            <ArrowRightIcon className="w-4 h-4" />
-            بازگشت
-          </Link>
-          <div className="flex items-center gap-2">
-            <DocumentTextIcon className="w-5 h-5 text-blue-500" />
-            <span className="font-bold text-sm">رزومه‌ساز <span className="text-blue-500">اختصاصی</span></span>
+    <div className="flex min-h-screen flex-col bg-gray-100 dark:bg-gray-950">
+      <SiteHeader
+        start={<Wordmark />}
+        end={
+          <div className="flex items-center gap-1.5">
+            <AppLanguageMenu />
+            <AccentPicker />
+            <ThemeToggle />
+            <Link
+              href="/builder"
+              className="flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
+            >
+              <span className="hidden sm:inline">{ui.nav.build}</span>
+              <NextIcon className="h-4 w-4" />
+            </Link>
           </div>
-          <Link href="/builder"
-            className="flex items-center gap-1.5 text-sm font-semibold text-white px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 transition">
-            ساخت رزومه
-            <ArrowLeftIcon className="w-4 h-4" />
-          </Link>
-        </div>
-      </header>
+        }
+      />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
-        <div className="text-center mb-10">
-          <h1 className="text-2xl sm:text-3xl font-extrabold mb-3">پیش‌نمایش قالب‌های رزومه</h1>
-          <p className={`text-sm ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
-            روی هر قالب کلیک کنید تا بزرگ‌نمایی شود
-          </p>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+        <div className="mb-10 text-center">
+          <h1 className="mb-3 text-2xl font-extrabold sm:text-3xl">{ui.showcase.title}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{ui.showcase.subtitle}</p>
         </div>
 
-        {/* 3 template grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TEMPLATES.map((tmpl) => (
-            <div key={tmpl.id} className="flex flex-col gap-3 w-full max-w-[276px] mx-auto">
-              {/* Label */}
-              <div className="text-center">
-                <h3 className="font-bold text-sm">{tmpl.name}</h3>
-                <p className={`text-xs ${dark ? 'text-gray-400' : 'text-gray-500'}`}>{tmpl.desc}</p>
-              </div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {TEMPLATE_IDS.map((id) => {
+            const meta = ui.templates[id]
+            return (
+              <div key={id} className="mx-auto flex w-full max-w-[276px] flex-col gap-3">
+                <div className="text-center">
+                  <h2 className="text-sm font-bold">{meta.name}</h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{meta.desc}</p>
+                </div>
 
-              {/* Scaled preview card */}
-              <div
-                className={`relative rounded-xl overflow-hidden cursor-pointer border-2 transition-all hover:shadow-2xl hover:scale-[1.02] ${
-                  dark ? 'border-gray-700 hover:border-blue-500' : 'border-gray-200 hover:border-blue-400'
-                }`}
-                onClick={() => setActive(tmpl.id)}
-              >
-                {/* Scale wrapper — A4 ~794px wide, scale 0.348 → ~276px */}
-                <div style={{ height: '340px', overflow: 'hidden', position: 'relative' }}>
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    transform: 'scale(0.348)',
-                    transformOrigin: 'top left',
-                    width: '210mm',
-                    pointerEvents: 'none',
-                  }}>
-                    {tmpl.id === 1 && <Template1 data={{ ...mockData, template: 1 }} accentColor={accent} />}
-                    {tmpl.id === 2 && <Template2 data={{ ...mockData, template: 2 }} accentColor={accent} />}
-                    {tmpl.id === 3 && <Template3 data={{ ...mockData, template: 3 }} accentColor={accent} />}
+                <button
+                  onClick={() => setActive(id)}
+                  aria-label={`${meta.name} — ${ui.showcase.zoom}`}
+                  className="group relative cursor-pointer overflow-hidden rounded-xl border-2 border-gray-200 transition-all hover:border-[var(--accent)] hover:shadow-2xl dark:border-gray-700"
+                >
+                  <div style={{ height: '340px', overflow: 'hidden', position: 'relative' }}>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        insetInlineStart: 0,
+                        transform: `scale(${CARD_SCALE})`,
+                        transformOrigin: 'top left',
+                        width: '210mm',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <ResumeDocument templateId={id} data={demo} accentColor={accent} />
+                    </div>
                   </div>
-                </div>
 
-                {/* Hover overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/30">
-                  <span className="bg-white text-gray-800 text-xs font-semibold px-4 py-2 rounded-full shadow-lg">
-                    بزرگ‌نمایی
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-gray-800 shadow-lg">
+                      {ui.showcase.zoom}
+                    </span>
                   </span>
-                </div>
-              </div>
+                </button>
 
-              {/* Use this template */}
-              <Link href="/builder"
-                className="w-full text-center text-sm font-medium text-white py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 transition"
-                onClick={() => {
-                  const store = useResumeStore.getState()
-                  store.resetResume()
-                  store.setTemplate(tmpl.id)
-                }}
-              >
-                استفاده از این قالب ←
-              </Link>
-            </div>
-          ))}
+                <Link
+                  href="/builder"
+                  onClick={() => setTemplate(id)}
+                  className="w-full rounded-xl bg-[var(--accent)] py-2.5 text-center text-sm font-medium text-white transition hover:brightness-110"
+                >
+                  {ui.showcase.useTemplate}
+                </Link>
+              </div>
+            )
+          })}
         </div>
       </main>
 
-      {/* ── Fullscreen modal ── */}
-      {active !== null && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 backdrop-blur-sm overflow-y-auto py-8 px-4"
-          onClick={() => setActive(null)}
-        >
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
-            {/* Close btn */}
-            <button
-              onClick={() => setActive(null)}
-              className="absolute -top-4 -right-4 z-10 w-9 h-9 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition cursor-pointer"
-            >
-              <XMarkIcon className="w-5 h-5 text-gray-700" />
-            </button>
+      {/* ── Lightbox ── */}
+      <Modal open={active !== null} onClose={() => setActive(null)} bare labelledBy="gallery-title">
+        <h2 id="gallery-title" className="sr-only">
+          {active !== null ? ui.templates[active].name : ui.showcase.title}
+        </h2>
 
-            {/* Prev / Next */}
-            <button
-              onClick={() => setActive((v) => (((v ?? 1) - 2 + 3) % 3 + 1) as TemplateId)}
-              className="absolute top-1/2 -translate-y-1/2 -right-12 w-9 h-9 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition cursor-pointer"
-            >
-              <ArrowRightIcon className="w-4 h-4 text-gray-700" />
-            </button>
-            <button
-              onClick={() => setActive((v) => (((v ?? 1)) % 3 + 1) as TemplateId)}
-              className="absolute top-1/2 -translate-y-1/2 -left-12 w-9 h-9 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition cursor-pointer"
-            >
-              <ArrowLeftIcon className="w-4 h-4 text-gray-700" />
-            </button>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <GalleryNav label={ui.showcase.prevTemplate} onClick={() => step(-1)}>
+            <ChevronLeftIcon className="h-5 w-5" />
+          </GalleryNav>
 
-            {/* Full template */}
-            <div style={{ width: '210mm', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.5)', borderRadius: '4px', overflow: 'hidden' }}>
-              {active === 1 && <Template1 data={{ ...mockData, template: 1 }} accentColor={accent} />}
-              {active === 2 && <Template2 data={{ ...mockData, template: 2 }} accentColor={accent} />}
-              {active === 3 && <Template3 data={{ ...mockData, template: 3 }} accentColor={accent} />}
-            </div>
-
-            {/* Action */}
-            <div className="flex justify-center mt-5">
-              <Link href="/builder"
-                className="flex items-center gap-2 text-white font-bold px-8 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-lg transition text-sm"
-                onClick={() => {
-                  const store = useResumeStore.getState()
-                  store.resetResume()
-                  if (active !== null) store.setTemplate(active)
-                }}
-              >
-                انتخاب این قالب و شروع ساخت رزومه
-                <ArrowLeftIcon className="w-4 h-4" />
-              </Link>
-            </div>
+          <div
+            style={{
+              width: '210mm',
+              maxWidth: 'min(95vw, 720px)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              borderRadius: '4px',
+              overflow: 'hidden',
+              background: '#fff',
+            }}
+          >
+            {active !== null && (
+              <ResumeDocument templateId={active} data={demo} accentColor={accent} />
+            )}
           </div>
-        </div>
-      )}
 
-      <footer className={`text-center py-3 text-xs border-t ${dark ? 'border-gray-800 text-gray-500' : 'border-gray-200 text-gray-400'}`}>
-        طراحی و توسعه با <span className="text-red-500">❤️</span> توسط{' '}
-        <a href="https://github.com/Alirewa" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline font-medium">@Alirewa</a>
-      </footer>
+          <GalleryNav label={ui.showcase.nextTemplate} onClick={() => step(1)}>
+            <ChevronRightIcon className="h-5 w-5" />
+          </GalleryNav>
+        </div>
+
+        <div className="mt-5 flex justify-center gap-3">
+          <Link
+            href="/builder"
+            onClick={() => active !== null && setTemplate(active)}
+            className="flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:brightness-110"
+          >
+            {ui.showcase.startWithTemplate}
+            <NextIcon className="h-4 w-4" />
+          </Link>
+          <button
+            onClick={() => setActive(null)}
+            className="flex cursor-pointer items-center gap-2 rounded-2xl bg-white/90 px-4 py-3 text-sm font-medium text-gray-700 shadow-lg transition hover:bg-white"
+          >
+            <XMarkIcon className="h-4 w-4" />
+            {ui.showcase.close}
+          </button>
+        </div>
+      </Modal>
+
+      <SiteFooter />
     </div>
+  )
+}
+
+/** Gallery arrows sit inside the flex row rather than hanging off the panel,
+ *  which used to push them off-screen on narrow viewports. */
+function GalleryNav({
+  label,
+  onClick,
+  children,
+}: {
+  label: string
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white text-gray-700 shadow-lg transition hover:bg-gray-100"
+    >
+      {children}
+    </button>
   )
 }

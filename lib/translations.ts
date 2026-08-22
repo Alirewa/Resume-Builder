@@ -35,6 +35,7 @@ export interface Translations {
     phone: string
     address: string
     email: string
+    website: string
     profileText: string
     // placeholders
     ph: {
@@ -47,6 +48,7 @@ export interface Translations {
       phone: string
       address: string
       email: string
+      website: string
       profileText: string
     }
     // Experience
@@ -124,6 +126,7 @@ export const translations: Record<ResumeLanguage, Translations> = {
       phone: 'Telefon',
       address: 'Adresse',
       email: 'E-Mail',
+      website: 'Website / Portfolio',
       profileText: 'Persönliches Profil',
       ph: {
         firstName: 'z.B. Max',
@@ -135,6 +138,7 @@ export const translations: Record<ResumeLanguage, Translations> = {
         phone: 'z.B. +49 123 456789',
         address: 'z.B. Musterstraße 1, 10115 Berlin',
         email: 'z.B. max@beispiel.de',
+        website: 'z.B. github.com/mustermann',
         profileText: 'Kurze Zusammenfassung Ihrer beruflichen Laufbahn...',
       },
       company: 'Unternehmen / Organisation',
@@ -206,6 +210,7 @@ export const translations: Record<ResumeLanguage, Translations> = {
       phone: 'Phone',
       address: 'Address',
       email: 'Email',
+      website: 'Website / Portfolio',
       profileText: 'Professional Profile',
       ph: {
         firstName: 'e.g. John',
@@ -217,6 +222,7 @@ export const translations: Record<ResumeLanguage, Translations> = {
         phone: 'e.g. +44 7700 900000',
         address: 'e.g. 123 Main St, London',
         email: 'e.g. john@example.com',
+        website: 'e.g. github.com/johnsmith',
         profileText: 'Brief summary of your professional background...',
       },
       company: 'Company / Organization',
@@ -288,6 +294,7 @@ export const translations: Record<ResumeLanguage, Translations> = {
       phone: 'شماره تلفن',
       address: 'آدرس',
       email: 'ایمیل',
+      website: 'وب‌سایت / نمونه‌کار',
       profileText: 'معرفی / پروفایل',
       ph: {
         firstName: 'مثلاً: علی',
@@ -299,6 +306,7 @@ export const translations: Record<ResumeLanguage, Translations> = {
         phone: 'مثلاً: +49 123 456789',
         address: 'مثلاً: خیابان، شهر، کشور',
         email: 'مثلاً: example@gmail.com',
+        website: 'مثلاً: github.com/username',
         profileText: 'خلاصه‌ای از تجربیات و مهارت‌های حرفه‌ای خود را بنویسید...',
       },
       company: 'نام شرکت / سازمان',
