@@ -65,11 +65,14 @@ export interface UiStrings {
   }
 
   preview: {
-    print: string
-    printTitle: string
-    pdf: string
+    /** Primary export: the browser's own renderer — vector, selectable text. */
+    pdfDownload: string
+    pdfDownloadTitle: string
+    /** Secondary export: a rasterised snapshot, for browsers without print-to-PDF. */
+    pdfImage: string
+    pdfImageTitle: string
     exporting: string
-    printHint: string
+    pdfHint: string
     templateN: (n: number) => string
     hideEmpty: string
     hideEmptyHint: string
@@ -169,11 +172,12 @@ const fa: UiStrings = {
     moveDown: 'انتقال به پایین',
   },
   preview: {
-    print: 'چاپ',
-    printTitle: 'چاپ / ذخیره به‌عنوان PDF',
-    pdf: 'PDF',
+    pdfDownload: 'دانلود PDF',
+    pdfDownloadTitle: 'خروجی استاندارد — متن قابل انتخاب و خوانا برای سیستم‌های ATS',
+    pdfImage: 'PDF تصویری',
+    pdfImageTitle: 'خروجی تصویری — فقط اگر چاپ مرورگر در دسترس نیست',
     exporting: 'در حال ساخت…',
-    printHint: 'بهترین کیفیت خروجی: دکمه چاپ ← «Save as PDF» در مرورگر',
+    pdfHint: 'در پنجرهٔ چاپ، مقصد را روی «Save as PDF» بگذارید. متن رزومه در این حالت واقعی می‌ماند و سامانه‌های استخدام می‌توانند آن را بخوانند — برخلاف خروجی تصویری.',
     templateN: (n) => `قالب ${n}`,
     hideEmpty: 'پنهان کردن بخش‌های خالی',
     hideEmptyHint: 'بخش‌هایی که پر نکرده‌اید در رزومه نمایش داده نمی‌شوند',
@@ -220,7 +224,7 @@ const fa: UiStrings = {
     avatarFailed: 'خواندن تصویر ممکن نشد',
     storageFull:
       'حافظه مرورگر پر است — تغییرات ذخیره نشد. تصویر کوچک‌تری انتخاب کنید یا خروجی JSON بگیرید.',
-    pdfFailed: 'ساخت PDF ممکن نشد — از دکمه چاپ استفاده کنید',
+    pdfFailed: 'ساخت تصویر ممکن نشد — از «دانلود PDF» استفاده کنید',
     sampleLoaded: 'رزومه نمونه بارگذاری شد',
     cleared: 'فرم پاک شد',
     undo: 'بازگردانی',
@@ -287,11 +291,12 @@ const en: UiStrings = {
     moveDown: 'Move down',
   },
   preview: {
-    print: 'Print',
-    printTitle: 'Print / Save as PDF',
-    pdf: 'PDF',
+    pdfDownload: 'Download PDF',
+    pdfDownloadTitle: 'Standard export — selectable text that applicant tracking systems can read',
+    pdfImage: 'Image PDF',
+    pdfImageTitle: 'Picture-only export — use if your browser cannot print to PDF',
     exporting: 'Generating…',
-    printHint: 'Best quality: use Print → “Save as PDF” in your browser',
+    pdfHint: 'In the print dialog, set the destination to “Save as PDF”. The text stays real, so recruiters’ tracking systems can read it — unlike the image export.',
     templateN: (n) => `Template ${n}`,
     hideEmpty: 'Hide empty sections',
     hideEmptyHint: 'Sections you left blank are omitted from the resume',
@@ -346,7 +351,7 @@ const en: UiStrings = {
     avatarFailed: 'The image could not be read',
     storageFull:
       'Browser storage is full — changes were not saved. Use a smaller photo or export to JSON.',
-    pdfFailed: 'PDF export failed — please use the print button instead',
+    pdfFailed: 'Image export failed — please use “Download PDF” instead',
     sampleLoaded: 'Sample resume loaded',
     cleared: 'Form cleared',
     undo: 'Undo',
@@ -413,11 +418,12 @@ const de: UiStrings = {
     moveDown: 'Nach unten',
   },
   preview: {
-    print: 'Drucken',
-    printTitle: 'Drucken / Als PDF speichern',
-    pdf: 'PDF',
+    pdfDownload: 'PDF herunterladen',
+    pdfDownloadTitle: 'Standard-Export — markierbarer Text, den Bewerbermanagementsysteme lesen können',
+    pdfImage: 'Bild-PDF',
+    pdfImageTitle: 'Reiner Bild-Export — nur falls Ihr Browser nicht als PDF drucken kann',
     exporting: 'Wird erstellt…',
-    printHint: 'Beste Qualität: Drucken → „Als PDF speichern“ im Browser',
+    pdfHint: 'Wählen Sie im Druckdialog das Ziel „Als PDF speichern“. Der Text bleibt echt und für Bewerbersysteme lesbar — anders als beim Bild-Export.',
     templateN: (n) => `Vorlage ${n}`,
     hideEmpty: 'Leere Abschnitte ausblenden',
     hideEmptyHint: 'Nicht ausgefüllte Abschnitte erscheinen nicht im Lebenslauf',
@@ -464,7 +470,7 @@ const de: UiStrings = {
     avatarFailed: 'Das Bild konnte nicht gelesen werden',
     storageFull:
       'Der Browserspeicher ist voll — Änderungen wurden nicht gespeichert. Nutzen Sie ein kleineres Foto oder exportieren Sie als JSON.',
-    pdfFailed: 'PDF-Export fehlgeschlagen — bitte den Drucken-Button verwenden',
+    pdfFailed: 'Bild-Export fehlgeschlagen — bitte „PDF herunterladen“ verwenden',
     sampleLoaded: 'Beispiel-Lebenslauf geladen',
     cleared: 'Formular geleert',
     undo: 'Rückgängig',

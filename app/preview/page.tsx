@@ -6,7 +6,7 @@ import {
   ArrowDownTrayIcon,
   ArrowLongLeftIcon,
   ArrowLongRightIcon,
-  PrinterIcon,
+  PhotoIcon,
 } from '@heroicons/react/24/outline'
 import { useResumeStore } from '@/lib/store'
 import { exportBaseName } from '@/lib/resume'
@@ -72,15 +72,15 @@ export default function PreviewPage() {
     return () => cancelAnimationFrame(raf)
   }, [resume, hideEmpty, hydrated, recompute])
 
-  const handleExportPdf = async () => {
+  /** Primary export: vector text the employer's screening software can read. */
+  const handleDownloadPdf = () => printResume(exportBaseName(resume))
+
+  /** Secondary export: a picture of the resume, for browsers without print-to-PDF. */
+  const handleExportImagePdf = async () => {
     setExporting(true)
     try {
       const result = await exportToPdf(`${exportBaseName(resume)}.pdf`)
-      if (!result.ok) {
-        toast.error(ui.toast.pdfFailed)
-        // The browser's own renderer always works — offer it straight away.
-        printResume()
-      }
+      if (!result.ok) toast.error(ui.toast.pdfFailed)
     } finally {
       setExporting(false)
     }
@@ -90,7 +90,7 @@ export default function PreviewPage() {
   const visualWidth = previewScale < 1 ? Math.ceil(A4_PX * previewScale) : undefined
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-100 dark:bg-gray-950">
+    <div id="preview-page-root" className="flex min-h-screen flex-col bg-gray-100 dark:bg-gray-950">
       <SiteHeader
         start={
           <div className="flex items-center gap-3">
@@ -139,21 +139,23 @@ export default function PreviewPage() {
             <AccentPicker />
             <ThemeToggle />
 
+            {/* Image export is the fallback, so it gets the quieter treatment. */}
             <IconButton
-              label={ui.preview.printTitle}
-              onClick={printResume}
-              className="hidden bg-gray-200/70 sm:inline-flex dark:bg-gray-800"
+              label={ui.preview.pdfImageTitle}
+              onClick={handleExportImagePdf}
+              disabled={exporting}
+              className="hidden bg-gray-200/70 disabled:opacity-60 sm:inline-flex dark:bg-gray-800"
             >
-              <PrinterIcon className="h-4 w-4" />
+              <PhotoIcon className="h-4 w-4" />
             </IconButton>
 
             <button
-              onClick={handleExportPdf}
-              disabled={exporting}
-              className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 py-1.5 text-xs font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleDownloadPdf}
+              title={ui.preview.pdfDownloadTitle}
+              className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 py-1.5 text-xs font-semibold text-white transition hover:brightness-110"
             >
               <ArrowDownTrayIcon className="h-3.5 w-3.5" />
-              <span>{exporting ? ui.preview.exporting : ui.preview.pdf}</span>
+              <span>{ui.preview.pdfDownload}</span>
             </button>
           </div>
         }
@@ -226,7 +228,7 @@ export default function PreviewPage() {
       </main>
 
       <p className="py-2 text-center text-xs text-gray-400 no-print dark:text-gray-600">
-        {ui.preview.printHint}
+        {ui.preview.pdfHint}
       </p>
 
       <SiteFooter />

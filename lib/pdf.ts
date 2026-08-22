@@ -1,6 +1,18 @@
 'use client'
 
 /**
+ * Two export paths, in order of preference:
+ *
+ *   `printResume()`  — the browser's own PDF renderer. Vector text, so the
+ *                      result is selectable and machine-readable. This is what
+ *                      the primary button uses.
+ *   `exportToPdf()`  — a rasterised snapshot, kept for browsers that cannot
+ *                      print to PDF (notably some mobile browsers). The output
+ *                      is an image and is *not* readable by applicant tracking
+ *                      systems, so it is offered as an explicit second choice.
+ */
+
+/**
  * Rasterised PDF export.
  *
  * The preview scales the A4 template down to fit the viewport, and the capture
@@ -157,7 +169,42 @@ function settleLayout(timeoutMs = 400): Promise<void> {
   })
 }
 
-/** The browser's own renderer — vector text, selectable, and always available. */
-export function printResume() {
-  window.print()
+/**
+ * Export through the browser's own PDF renderer.
+ *
+ * This is the primary path, and the only one that produces a usable resume:
+ * the text stays vector text, so it can be selected, searched, and — crucially
+ * — parsed by the applicant tracking systems most employers screen with. The
+ * html2canvas route below bakes the whole page into a JPEG, which reads as a
+ * blank document to those systems.
+ *
+ * Browsers name the saved file after the document title, so the title is
+ * swapped for the duration of the dialog and restored afterwards.
+ */
+export function printResume(filename?: string) {
+  if (!filename) {
+    window.print()
+    return
+  }
+
+  const originalTitle = document.title
+  document.title = filename
+
+  // `print()` is synchronous while the dialog is open in most browsers, but
+  // Safari returns immediately — `afterprint` covers both, and the timer
+  // covers browsers that never fire it.
+  let restored = false
+  const restore = () => {
+    if (restored) return
+    restored = true
+    document.title = originalTitle
+    window.removeEventListener('afterprint', restore)
+  }
+
+  window.addEventListener('afterprint', restore)
+  try {
+    window.print()
+  } finally {
+    window.setTimeout(restore, 1000)
+  }
 }
