@@ -3,13 +3,32 @@
 /* ── Tailwind v4: class-based dark mode (.dark on <html>) ── */
 @variant dark (&:where(.dark, .dark *));
 
+/* ── Design tokens ────────────────────────────────────────
+   --accent is written by ThemeSync from the user's picked colour, so the app
+   chrome and the resume share one source of truth instead of the chrome being
+   permanently blue while the document changes colour. */
+:root {
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  /* Derived tints are plain rgba(), never color-mix(): html2canvas 1.x cannot
+     parse modern colour functions, and a single lab()/oklch() value anywhere in
+     the captured subtree aborts the whole PDF export. */
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --accent-ring: rgba(37, 99, 235, 0.45);
+}
 
-/* ── Base ────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
-  font-family: 'Vazirmatn', Arial, sans-serif;
+  font-family: 'Vazirmatn', Arial, Helvetica, sans-serif;
   transition: background-color 0.3s, color 0.3s;
+}
+
+/* Latin UI text reads better in a Latin face; Vazirmatn stays the fallback
+   so Persian inside an English UI still renders correctly. */
+html[lang="en"] body,
+html[lang="de"] body {
+  font-family: Arial, Helvetica, 'Vazirmatn', sans-serif;
 }
 
 /* ── Resume font classes ─────────────────── */
@@ -24,12 +43,18 @@ body {
   text-align: left;
 }
 
-/* ── Dark mode overrides ─────────────────── */
-@variant dark {
-  .dark-card {
-    background-color: rgb(30 41 59);
-    border-color: rgb(51 65 85);
-    color: rgb(226 232 240);
+/* ── Focus visibility ────────────────────── */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -43,14 +68,34 @@ body {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ── Toast animation ─────────────────────── */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.toast-enter { animation: toast-in 0.18s ease-out both; }
+
 /* ── Print / PDF ─────────────────────────── */
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body { margin: 0; padding: 0; background: white !important; }
   .no-print { display: none !important; }
+
   /* Preview page: show only the resume template, full A4 */
   #preview-page-main { padding: 0 !important; background: white !important; display: block !important; }
-  #preview-clip-div { overflow: visible !important; height: auto !important; width: 210mm !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 auto; }
-  #preview-template-wrapper { width: 210mm !important; transform: none !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; margin: 0; }
+  #preview-clip-div {
+    overflow: visible !important; height: auto !important; width: 210mm !important;
+    box-shadow: none !important; border-radius: 0 !important; margin: 0 auto;
+  }
+  #preview-template-wrapper {
+    width: 210mm !important; transform: none !important; box-shadow: none !important;
+    border-radius: 0 !important; overflow: visible !important; margin: 0;
+  }
+
+  /* Keep a job or a degree from being split across two sheets, and never
+     leave a section heading stranded at the bottom of a page. */
+  .resume-entry { break-inside: avoid; page-break-inside: avoid; }
+  .resume-heading { break-after: avoid; page-break-after: avoid; }
+
   @page { margin: 0; size: A4 portrait; }
 }
