@@ -78,8 +78,17 @@ html[lang="de"] body {
 /* ── Print / PDF ─────────────────────────── */
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { margin: 0; padding: 0; background: white !important; }
   .no-print { display: none !important; }
+
+  /* Colours are forced to print exactly (above), so the dark theme would
+     otherwise paint a near-black page around the resume. The sheet itself is
+     always white, drawn by the template. */
+  html, body, #preview-page-root {
+    margin: 0;
+    padding: 0;
+    background: #fff !important;
+    min-height: 0 !important;
+  }
 
   /* Preview page: show only the resume template, full A4 */
   #preview-page-main { padding: 0 !important; background: white !important; display: block !important; }
